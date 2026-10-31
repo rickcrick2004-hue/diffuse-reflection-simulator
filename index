@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>中1理科：鏡の反射と乱反射 体感シミュレーター</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+    body {
+      font-family: 'M PLUS Rounded 1c', sans-serif;
+      background-color: #090d16;
+      color: #f8fafc;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* iPadの指操作に最適化した大型スライダー */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: #334155;
+      height: 12px;
+      border-radius: 999px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #38bdf8;
+      border: 4px solid #ffffff;
+      cursor: pointer;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.5);
+    }
+    .slider-rose::-webkit-slider-thumb {
+      background: #f43f5e !important;
+    }
+    .slider-amber::-webkit-slider-thumb {
+      background: #f59e0b !important;
+    }
+
+    @keyframes pulseBadge {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
+    .pulse-gentle {
+      animation: pulseBadge 2.2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="flex flex-col w-screen h-screen overflow-hidden bg-slate-950 select-none">
+
+  <!-- ==================== 1. 上部ヘッダー（大きな文字とワンタップ画面切替） ==================== -->
+  <header class="h-16 shrink-0 bg-slate-900 border-b-2 border-slate-800 px-4 flex items-center justify-between gap-3 z-20">
+    <!-- 左：タイトル -->
+    <div class="flex items-center gap-3">
+      <div class="bg-gradient-to-br from-rose-500 to-amber-500 text-white font-black px-3.5 py-1.5 rounded-xl text-base shadow-md flex items-center gap-1.5 shrink-0">
+        <span>🔦 中1理科</span>
+      </div>
+      <div>
+        <h1 class="text-lg xl:text-xl font-black text-white tracking-tight leading-tight">
+          鏡の反射 と 乱反射（らんはんしゃ）のしくみ
+        </h1>
+      </div>
+    </div>
+
+    <!-- 中央：最重要ポイント（大きな文字で常時表示） -->
+    <div class="hidden xl:flex items-center gap-2 bg-indigo-950 border-2 border-amber-400/60 px-4 py-1.5 rounded-2xl shadow">
+      <span class="text-base font-black text-amber-300">
+        💡 大原則：乱反射でも、光が当たる１つ１つの場所では「入射角 ＝ 反射角」が成り立つ！
+      </span>
+    </div>
+
+    <!-- 右：モード切替ボタン（大きく押しやすいタブ） -->
+    <div class="flex items-center bg-slate-800 p-1.5 rounded-2xl border border-slate-700 gap-1.5 shrink-0">
+      <button id="tab-compare" onclick="setViewMode('compare')" class="px-4 py-2 rounded-xl text-sm font-black transition-all bg-sky-500 text-white shadow-md">
+        ⚖️ 鏡と乱反射を並べて比較
+      </button>
+      <button id="tab-single" onclick="setViewMode('single')" class="px-4 py-2 rounded-xl text-sm font-black transition-all text-slate-300 hover:text-white">
+        🔍 大きく1画面で実験
+      </button>
+      <button id="tab-summary" onclick="setViewMode('summary')" class="px-4 py-2 rounded-xl text-sm font-black transition-all text-slate-300 hover:text-white">
+        📖 大型図解まとめ＆クイズ
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== 2. メインエリア（iPad横1画面に完全収容） ==================== -->
+  <main class="flex-1 min-h-0 grid grid-cols-12 gap-3 p-3 bg-slate-950 overflow-hidden">
+
+    <!-- ========== 左・中央カラム：メイン実験キャンバス ＋ 大型操作パネル (8列) ========== -->
+    <section id="sim-column" class="col-span-8 flex flex-col gap-3 min-h-0 h-full">
+
+      <!-- 上：インタラクティブ実験キャンバス枠 -->
+      <div class="relative flex-1 min-h-0 bg-slate-900 rounded-2xl border-2 border-slate-800 overflow-hidden flex flex-col shadow-xl">
+
+        <!-- キャンバス上部バー：操作ガイドと「スロー発射」「自動スキャン」アクションボタン -->
+        <div class="bg-slate-900/95 border-b border-slate-800 px-3.5 py-2 flex items-center justify-between gap-2 shrink-0 z-10">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-extrabold text-slate-200 flex items-center gap-1.5">
+              👆 <span class="text-rose-400">赤いレーザー本体</span>を直接ドラッグして動かすか、<span class="text-cyan-300">光が当たった点</span>をタップしよう！
+            </span>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <button onclick="triggerShootAnimation()" class="bg-gradient-to-r from-rose-600 to-amber-500 hover:from-rose-500 hover:to-amber-400 active:scale-95 text-white text-sm font-black px-4 py-1.5 rounded-xl shadow-lg flex items-center gap-1.5 transition">
+              <span>🚀 光を発射！（スロー再生）</span>
+            </button>
+            <button id="btn-auto-sweep" onclick="toggleAutoSweep()" class="bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 text-amber-300 text-sm font-black px-3.5 py-1.5 rounded-xl transition flex items-center gap-1">
+              <span>🔄 左右に自動スキャン：OFF</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- HTML5 Canvas 本体 -->
+        <div id="canvas-container" class="relative flex-1 min-h-0 w-full h-full">
+          <canvas id="simCanvas" class="w-full h-full block cursor-pointer touch-none"></canvas>
+
+          <!-- 1画面モード時のみ左上に表示する「面の種類ワンタッチ切替」大型ボタン -->
+          <div id="single-mode-switch" class="hidden absolute top-3 left-3 bg-slate-900/95 backdrop-blur border-2 border-slate-700 p-1.5 rounded-2xl shadow-xl flex items-center gap-1.5 z-10">
+            <span class="text-sm font-black text-slate-300 px-2">面の種類：</span>
+            <button id="preset-mirror" onclick="setRoughnessPreset(0)" class="px-3.5 py-1.5 rounded-xl text-sm font-black bg-sky-500 text-white shadow">
+              🪞 平らな鏡
+            </button>
+            <button id="preset-wave" onclick="setRoughnessPreset(0.4)" class="px-3.5 py-1.5 rounded-xl text-sm font-black text-slate-300 hover:bg-slate-800">
+              🌊 少し凸凹な面
+            </button>
+            <button id="preset-rough" onclick="setRoughnessPreset(0.9)" class="px-3.5 py-1.5 rounded-xl text-sm font-black text-slate-300 hover:bg-slate-800">
+              📄 白い紙・壁（乱反射）
+            </button>
+          </div>
+
+          <!-- キャンバス内下部の色分け凡例（大きく見やすい文字） -->
+          <div class="absolute bottom-2.5 right-3 bg-slate-950/90 backdrop-blur border border-slate-700 rounded-xl px-3.5 py-1.5 flex items-center gap-4 text-xs sm:text-sm font-extrabold pointer-events-none shadow-lg">
+            <div class="flex items-center gap-1.5">
+              <span class="inline-block w-4 h-1.5 bg-rose-500 rounded-full"></span>
+              <span class="text-rose-300">入射光</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="inline-block w-4 h-1.5 bg-amber-400 rounded-full"></span>
+              <span class="text-amber-300">反射光</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="inline-block w-4 h-0.5 border-t-2 border-dashed border-emerald-400"></span>
+              <span class="text-emerald-300">法線(垂直)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="inline-block w-4 h-1.5 bg-cyan-400 rounded-full"></span>
+              <span class="text-cyan-300">小さな鏡の傾き</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- キャンバス下部：どこから見えるか？（鏡 vs 乱反射 の観察者リアルタイム比較バー） -->
+        <div class="bg-slate-950 border-t-2 border-slate-800 px-3.5 py-2 grid grid-cols-2 gap-3 shrink-0">
+          <div class="bg-slate-900 border border-sky-500/40 rounded-xl px-3 py-1.5 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">🪞</span>
+              <div>
+                <div class="text-sm font-black text-sky-300">鏡：1方向だけに反射</div>
+                <div class="text-xs font-bold text-slate-400">特定の場所の人しか見えない</div>
+              </div>
+            </div>
+            <div id="status-mirror-eyes" class="flex items-center gap-1.5"></div>
+          </div>
+
+          <div class="bg-slate-900 border border-amber-500/40 rounded-xl px-3 py-1.5 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">📄</span>
+              <div>
+                <div class="text-sm font-black text-amber-300">乱反射：あらゆる方向へ反射</div>
+                <div class="text-xs font-bold text-slate-400">どこに座っている人にも光が届く！</div>
+              </div>
+            </div>
+            <div id="status-diffuse-eyes" class="flex items-center gap-1.5"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 下：iPadタッチ操作用 大型コントロールパネル -->
+      <div class="h-40 shrink-0 bg-slate-900 rounded-2xl border-2 border-slate-800 p-3 grid grid-cols-12 gap-3 items-center shadow-lg">
+
+        <!-- 1. レーザーの角度・位置スライダー (5列) -->
+        <div class="col-span-5 bg-slate-950/80 border border-slate-800 rounded-xl p-3 h-full flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-black text-rose-400">🔦 レーザーの角度と場所</span>
+            <div class="flex gap-1">
+              <button onclick="setLaserPreset(25, 0.30)" class="bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 px-2.5 py-1 rounded-lg border border-slate-700 font-extrabold">浅く</button>
+              <button onclick="setLaserPreset(45, 0.45)" class="bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 px-2.5 py-1 rounded-lg border border-slate-700 font-extrabold">45°</button>
+              <button onclick="setLaserPreset(72, 0.52)" class="bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 px-2.5 py-1 rounded-lg border border-slate-700 font-extrabold">深く</button>
+            </div>
+          </div>
+
+          <!-- 角度スライダー -->
+          <div class="flex items-center gap-2.5">
+            <label class="text-sm font-extrabold text-slate-200 w-24 shrink-0">当てる角度</label>
+            <input id="slider-angle" type="range" min="15" max="80" step="1" value="42" class="w-full slider-rose" oninput="onControlInput()" />
+            <span id="label-angle" class="text-base font-black text-rose-400 w-12 text-right">42°</span>
+          </div>
+
+          <!-- 場所スライダー -->
+          <div class="flex items-center gap-2.5">
+            <label class="text-sm font-extrabold text-slate-200 w-24 shrink-0">当てる場所</label>
+            <input id="slider-pos" type="range" min="0.18" max="0.78" step="0.004" value="0.46" class="w-full" oninput="onControlInput()" />
+            <span id="label-pos" class="text-sm font-black text-sky-300 w-12 text-right">中央</span>
+          </div>
+        </div>
+
+        <!-- 2. レーザー本数＆表面の凸凹スライダー (4列) -->
+        <div class="col-span-4 bg-slate-950/80 border border-slate-800 rounded-xl p-3 h-full flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-sm font-black text-amber-300">✨ レーザーの本数</span>
+              <span class="text-xs font-bold text-slate-400">1本だと角度がよくわかる</span>
+            </div>
+            <div class="grid grid-cols-3 gap-1.5">
+              <button id="btn-rays-1" onclick="setRayCount(1)" class="py-1.5 rounded-xl text-sm font-black bg-slate-800 text-slate-200 border border-slate-700">
+                1本 (拡大向き)
+              </button>
+              <button id="btn-rays-5" onclick="setRayCount(5)" class="py-1.5 rounded-xl text-sm font-black bg-amber-500 text-slate-950 shadow">
+                5本 (おすすめ)
+              </button>
+              <button id="btn-rays-7" onclick="setRayCount(7)" class="py-1.5 rounded-xl text-sm font-black bg-slate-800 text-slate-200 border border-slate-700">
+                7本 (ワイド)
+              </button>
+            </div>
+          </div>
+
+          <!-- 凸凹スライダー -->
+          <div class="flex items-center gap-2">
+            <label class="text-sm font-extrabold text-slate-200 shrink-0">面の凸凹</label>
+            <input id="slider-roughness" type="range" min="0" max="1" step="0.05" value="0.90" class="w-full slider-amber" oninput="onControlInput()" />
+            <button onclick="changeBumpShape()" class="bg-slate-800 hover:bg-slate-700 text-xs font-black text-amber-300 px-2.5 py-1.5 rounded-lg border border-slate-700 shrink-0">
+              🔄 形変更
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. 補助線の表示切替スイッチ (3列) -->
+        <div class="col-span-3 bg-slate-950/80 border border-slate-800 rounded-xl p-3 h-full flex flex-col justify-between">
+          <div class="text-sm font-black text-emerald-300">📐 補助図形の表示</div>
+          <label class="flex items-center gap-2.5 cursor-pointer text-sm font-extrabold text-slate-200">
+            <input id="chk-tangents" type="checkbox" checked onchange="onControlInput()" class="w-5 h-5 accent-cyan-400 rounded" />
+            <span>小さな鏡の傾き</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer text-sm font-extrabold text-slate-200">
+            <input id="chk-normals" type="checkbox" checked onchange="onControlInput()" class="w-5 h-5 accent-emerald-400 rounded" />
+            <span>法線（垂直な線）</span>
+          </label>
+          <label class="flex items-center gap-2.5 cursor-pointer text-sm font-extrabold text-slate-200">
+            <input id="chk-angles" type="checkbox" checked onchange="onControlInput()" class="w-5 h-5 accent-amber-400 rounded" />
+            <span>入射角＝反射角</span>
+          </label>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========== 右カラム：特大ミクロ拡大ルーペ ＆ 視覚ポイント図解 (4列) ========== -->
+    <aside id="right-column" class="col-span-4 flex flex-col gap-3 min-h-0 h-full">
+
+      <!-- 上段：特大ミクロ拡大ルーペ（凸凹の1点では必ず「入射角＝反射角」になる証拠！） -->
+      <div class="flex-1 min-h-0 bg-slate-900 rounded-2xl border-2 border-cyan-500/40 p-3 flex flex-col justify-between shadow-xl">
+        <!-- ルーペヘッダーと光線選択ボタン -->
+        <div class="flex items-center justify-between gap-2 shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="bg-cyan-500 text-slate-950 font-black px-2.5 py-1 rounded-lg text-sm shadow">
+              🔎 ミクロ拡大図
+            </span>
+            <h2 class="text-base font-black text-white">凸凹の１か所を拡大！</h2>
+          </div>
+          <div id="ray-select-group" class="flex items-center gap-1"></div>
+        </div>
+
+        <!-- 特大ミクロキャンバス -->
+        <div class="relative flex-1 min-h-0 my-2 bg-slate-950 rounded-2xl border-2 border-slate-800 overflow-hidden">
+          <canvas id="microCanvas" class="w-full h-full block"></canvas>
+          <div id="micro-slope-badge" class="absolute top-2.5 left-3 bg-slate-900/90 border border-cyan-400/50 px-3 py-1 rounded-xl text-sm font-black text-cyan-300 shadow">
+            光線 ③ の場所：面の傾き +12°
+          </div>
+        </div>
+
+        <!-- 入射角 ＝ 反射角 の特大デジタルメーター -->
+        <div class="grid grid-cols-11 gap-2 items-center bg-slate-950 border border-slate-800 rounded-2xl p-2.5 shrink-0">
+          <div class="col-span-5 bg-rose-950/60 border-2 border-rose-500/50 rounded-xl px-3 py-1.5 flex items-center justify-between">
+            <span class="text-sm font-black text-rose-200">入射角</span>
+            <span id="big-inc-deg" class="text-2xl font-black text-rose-400">35°</span>
+          </div>
+
+          <div class="col-span-1 text-center text-2xl font-black text-emerald-400">
+            ＝
+          </div>
+
+          <div class="col-span-5 bg-amber-950/60 border-2 border-amber-500/50 rounded-xl px-3 py-1.5 flex items-center justify-between">
+            <span class="text-sm font-black text-amber-200">反射角</span>
+            <span id="big-ref-deg" class="text-2xl font-black text-amber-300">35°</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 下段：大きくわかりやすい図解カード（ワンタップ切替） -->
+      <div class="h-64 shrink-0 bg-slate-900 rounded-2xl border-2 border-slate-800 p-3 flex flex-col justify-between shadow-xl">
+        <!-- カード切替タブ -->
+        <div class="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800 shrink-0">
+          <button id="card-tab-1" onclick="switchGuideCard(1)" class="py-1.5 rounded-lg text-sm font-black bg-indigo-600 text-white shadow">
+            💡 なぜ色んな方向へ？
+          </button>
+          <button id="card-tab-2" onclick="switchGuideCard(2)" class="py-1.5 rounded-lg text-sm font-black text-slate-400 hover:text-white">
+            👀 なぜ物が見える？
+          </button>
+        </div>
+
+        <!-- カード1：なぜ乱反射はいろいろな方向へ飛ぶのか？（大きなイラスト付き） -->
+        <div id="guide-card-1" class="flex-1 min-h-0 flex flex-col justify-between pt-2">
+          <div class="grid grid-cols-12 gap-2.5 items-center flex-1">
+            <div class="col-span-6 h-full bg-slate-950 rounded-xl border border-slate-800 p-1.5 flex items-center justify-center">
+              <svg viewBox="0 0 220 125" class="w-full h-full">
+                <!-- 凸凹の地面 -->
+                <path d="M 10 98 Q 40 72, 72 96 T 138 88 T 210 95 L 210 120 L 10 120 Z" fill="#334155" />
+                <path d="M 10 98 Q 40 72, 72 96 T 138 88 T 210 95" fill="none" stroke="#cbd5e1" stroke-width="3" />
+                <!-- 小さな鏡プレート3枚 -->
+                <line x1="36" y1="84" x2="68" y2="94" stroke="#22d3ee" stroke-width="5" stroke-linecap="round" />
+                <line x1="94" y1="98" x2="128" y2="88" stroke="#22d3ee" stroke-width="5" stroke-linecap="round" />
+                <line x1="154" y1="88" x2="188" y2="96" stroke="#22d3ee" stroke-width="5" stroke-linecap="round" />
+                <!-- 入射光 -->
+                <line x1="20" y1="18" x2="52" y2="89" stroke="#f43f5e" stroke-width="3.5" />
+                <line x1="78" y1="18" x2="110" y2="93" stroke="#f43f5e" stroke-width="3.5" />
+                <line x1="138" y1="18" x2="170" y2="92" stroke="#f43f5e" stroke-width="3.5" />
+                <!-- 反射光 -->
+                <line x1="52" y1="89" x2="108" y2="20" stroke="#fbbf24" stroke-width="3.5" />
+                <line x1="110" y2="93" x2="88" y2="16" stroke="#fbbf24" stroke-width="3.5" />
+                <line x1="170" y2="92" x2="212" y2="24" stroke="#fbbf24" stroke-width="3.5" />
+                <text x="14" y="115" fill="#67e8f9" font-size="13" font-weight="900">▲ 傾きが違う小さな鏡の集まり！</text>
+              </svg>
+            </div>
+            <div class="col-span-6 space-y-1.5">
+              <div class="text-sm font-black text-amber-300 leading-snug">
+                凸凹な面 ＝「傾いた小さな鏡」の集まり！
+              </div>
+              <p class="text-xs sm:text-sm font-bold text-slate-200 leading-relaxed">
+                当たる場所によって<strong class="text-cyan-300">面の傾き（法線の向き）</strong>が違うため、反射の法則通りに跳ね返ると<strong class="text-amber-300">あらゆる方向</strong>へ光が広がります。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- カード2：なぜ教室のどこからでも黒板や本が見えるのか？ -->
+        <div id="guide-card-2" class="hidden flex-1 min-h-0 flex flex-col justify-between pt-2">
+          <div class="grid grid-cols-12 gap-2.5 items-center flex-1">
+            <div class="col-span-6 h-full bg-slate-950 rounded-xl border border-slate-800 p-1.5 flex items-center justify-center">
+              <svg viewBox="0 0 220 125" class="w-full h-full">
+                <!-- 物体（本・黒板） -->
+                <rect x="60" y="95" width="100" height="14" fill="#e2e8f0" rx="4" />
+                <text x="72" y="122" fill="#f8fafc" font-size="12" font-weight="900">本・スクリーン</text>
+                <!-- 光源 -->
+                <circle cx="30" cy="26" r="12" fill="#f43f5e" />
+                <line x1="40" y1="34" x2="95" y2="95" stroke="#f43f5e" stroke-width="3" />
+                <line x1="40" y1="34" x2="115" y2="95" stroke="#f43f5e" stroke-width="3" />
+                <line x1="40" y1="34" x2="135" y2="95" stroke="#f43f5e" stroke-width="3" />
+                <!-- 四方八方への乱反射 -->
+                <line x1="95" y1="95" x2="75" y2="26" stroke="#fbbf24" stroke-width="3" stroke-dasharray="4 2" />
+                <line x1="115" y1="95" x2="135" y2="22" stroke="#fbbf24" stroke-width="3" stroke-dasharray="4 2" />
+                <line x1="135" y1="95" x2="195" y2="32" stroke="#fbbf24" stroke-width="3" stroke-dasharray="4 2" />
+                <text x="60" y="20" fill="#fde047" font-size="14" font-weight="900">👀A</text>
+                <text x="122" y="18" fill="#fde047" font-size="14" font-weight="900">👀B</text>
+                <text x="182" y="26" fill="#fde047" font-size="14" font-weight="900">👀C</text>
+              </svg>
+            </div>
+            <div class="col-span-6 space-y-1.5">
+              <div class="text-sm font-black text-sky-300 leading-snug">
+                どこから見ても物が見える理由
+              </div>
+              <p class="text-xs sm:text-sm font-bold text-slate-200 leading-relaxed">
+                紙や黒板の表面で光が<strong class="text-amber-300">乱反射</strong>して四方八方に進むため、<strong class="text-emerald-300">どの席にいる人の目にも光が届く</strong>からです。
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- ========== モード3：大型図解まとめ＆3問クイズ画面（フル画面表示） ========== -->
+    <section id="summary-section" class="hidden col-span-12 grid grid-cols-12 gap-4 min-h-0 h-full">
+
+      <!-- 左半分：特大サイズの比較図解シート (7列) -->
+      <div class="col-span-7 bg-slate-900 rounded-2xl border-2 border-slate-800 p-4 flex flex-col justify-between h-full">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+          <h2 class="text-xl font-black text-amber-300">
+            📘 ひと目でわかる！「鏡の反射」と「乱反射」の徹底比較
+          </h2>
+          <button onclick="setViewMode('compare')" class="bg-sky-500 hover:bg-sky-400 text-white text-sm font-black px-4 py-2 rounded-xl shadow">
+            🔦 実験画面にもどる
+          </button>
+        </div>
+
+        <!-- 左右2枚の特大ビジュアル図解カード -->
+        <div class="grid grid-cols-2 gap-4 my-2 flex-1 min-h-0">
+          <!-- 鏡の反射 -->
+          <div class="bg-slate-950 border-2 border-sky-500/50 rounded-2xl p-3.5 flex flex-col justify-between">
+            <div class="text-lg font-black text-sky-300 flex items-center gap-2">
+              <span>🪞 鏡の反射（正反射）</span>
+            </div>
+            <svg viewBox="0 0 260 135" class="w-full h-36 bg-slate-900 rounded-xl border border-slate-800">
+              <rect x="20" y="108" width="220" height="10" fill="#38bdf8" rx="3" />
+              <!-- 法線 -->
+              <line x1="90" y1="20" x2="90" y2="108" stroke="#34d399" stroke-width="2" stroke-dasharray="4 3" />
+              <line x1="130" y1="20" x2="130" y2="108" stroke="#34d399" stroke-width="2" stroke-dasharray="4 3" />
+              <line x1="170" y1="20" x2="170" y2="108" stroke="#34d399" stroke-width="2" stroke-dasharray="4 3" />
+              <!-- 入射光 -->
+              <line x1="35" y1="25" x2="90" y2="108" stroke="#f43f5e" stroke-width="3.5" />
+              <line x1="75" y1="25" x2="130" y2="108" stroke="#f43f5e" stroke-width="3.5" />
+              <line x1="115" y1="25" x2="170" y2="108" stroke="#f43f5e" stroke-width="3.5" />
+              <!-- 反射光 -->
+              <line x1="90" y1="108" x2="145" y2="25" stroke="#fbbf24" stroke-width="3.5" />
+              <line x1="130" y1="108" x2="185" y2="25" stroke="#fbbf24" stroke-width="3.5" />
+              <line x1="170" y1="108" x2="225" y2="25" stroke="#fbbf24" stroke-width="3.5" />
+              <text x="155" y="20" fill="#fde047" font-size="13" font-weight="900">👀 1方向だけに届く</text>
+            </svg>
+            <ul class="text-sm font-bold text-slate-200 space-y-1 list-disc list-inside">
+              <li>表面が<strong class="text-sky-300">平らでなめらか</strong></li>
+              <li>平行な光は<strong class="text-amber-300">決まった１方向だけ</strong>に反射</li>
+              <li>例：鏡、静かな水面、磨いた金属</li>
+            </ul>
+          </div>
+
+          <!-- 乱反射 -->
+          <div class="bg-slate-950 border-2 border-amber-500/50 rounded-2xl p-3.5 flex flex-col justify-between">
+            <div class="text-lg font-black text-amber-300 flex items-center gap-2">
+              <span>📄 乱反射（らんはんしゃ）</span>
+            </div>
+            <svg viewBox="0 0 260 135" class="w-full h-36 bg-slate-900 rounded-xl border border-slate-800">
+              <path d="M 20 108 Q 50 86, 80 110 T 140 100 T 200 110 T 240 102 L 240 122 L 20 122 Z" fill="#64748b" />
+              <path d="M 20 108 Q 50 86, 80 110 T 140 100 T 200 110 T 240 102" fill="none" stroke="#f8fafc" stroke-width="3" />
+              <!-- 入射光 -->
+              <line x1="35" y1="25" x2="85" y2="108" stroke="#f43f5e" stroke-width="3.5" />
+              <line x1="75" y1="25" x2="128" y2="102" stroke="#f43f5e" stroke-width="3.5" />
+              <line x1="115" y1="25" x2="172" y2="107" stroke="#f43f5e" stroke-width="3.5" />
+              <!-- 反射光（四方八方） -->
+              <line x1="85" y1="108" x2="55" y2="25" stroke="#fbbf24" stroke-width="3.5" />
+              <line x1="128" y1="102" x2="225" y2="35" stroke="#fbbf24" stroke-width="3.5" />
+              <line x1="172" y1="107" x2="155" y2="22" stroke="#fbbf24" stroke-width="3.5" />
+              <text x="45" y="19" fill="#fde047" font-size="13" font-weight="900">👀 あらゆる方向へ届く！</text>
+            </svg>
+            <ul class="text-sm font-bold text-slate-200 space-y-1 list-disc list-inside">
+              <li>表面がミクロで見ると<strong class="text-amber-300">凸凹（でこぼこ）</strong></li>
+              <li>それぞれの場所で反射の法則に従い、<strong class="text-amber-300">あらゆる方向</strong>へ反射</li>
+              <li>例：白い紙、黒板、映画のスクリーン</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- 大型比較表 -->
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3">
+          <table class="w-full text-sm font-bold text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-300">
+                <th class="py-1.5 px-3">比べる項目</th>
+                <th class="py-1.5 px-3 text-center text-sky-300 text-base">🪞 鏡の反射</th>
+                <th class="py-1.5 px-3 text-center text-amber-300 text-base">📄 乱反射</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/80 text-slate-100">
+              <tr>
+                <td class="py-2 px-3 text-slate-400">表面のようす</td>
+                <td class="py-2 px-3 text-center">平ら・なめらか</td>
+                <td class="py-2 px-3 text-center">細かい凸凹（でこぼこ）がある</td>
+              </tr>
+              <tr>
+                <td class="py-2 px-3 text-slate-400">光が跳ね返る向き</td>
+                <td class="py-2 px-3 text-center font-black text-sky-300">決まった１方向のみ</td>
+                <td class="py-2 px-3 text-center font-black text-amber-300">あらゆる方向（四方八方）</td>
+              </tr>
+              <tr>
+                <td class="py-2 px-3 text-slate-400">反射の法則（入射角＝反射角）</td>
+                <td class="py-2 px-3 text-center font-black text-emerald-400 text-base">⭕ 成り立つ</td>
+                <td class="py-2 px-3 text-center font-black text-emerald-400 text-base">⭕ 1つ1つの場所で成り立つ！</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 右半分：大きな文字で答えやすい3問チェッククイズ (5列) -->
+      <div class="col-span-5 bg-slate-900 rounded-2xl border-2 border-slate-800 p-4 flex flex-col justify-between h-full">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+          <h2 class="text-xl font-black text-emerald-300">✅ 理解度チェッククイズ（全3問）</h2>
+          <button onclick="resetAllQuizzes()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-bold px-3 py-1.5 rounded-xl">
+            🔄 リセット
+          </button>
+        </div>
+
+        <div class="space-y-3 my-auto">
+          <!-- 第1問 -->
+          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 space-y-2">
+            <div class="text-sm sm:text-base font-black text-white">
+              Q1. 白い紙などで光が「乱反射」するとき、光が当たる1つ1つの場所では「入射角＝反射角」の法則は成り立っていますか？
+            </div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <button onclick="checkQuiz(1, true)" class="py-2.5 px-3 rounded-xl text-sm font-black bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white">
+                ⭕ 成り立っている
+              </button>
+              <button onclick="checkQuiz(1, false)" class="py-2.5 px-3 rounded-xl text-sm font-black bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white">
+                ❌ 成り立っていない
+              </button>
+            </div>
+            <div id="quiz-ans-1" class="hidden text-sm p-2 rounded-xl font-extrabold"></div>
+          </div>
+
+          <!-- 第2問 -->
+          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 space-y-2">
+            <div class="text-sm sm:text-base font-black text-white">
+              Q2. なぜ乱反射では、平行に入ってきた光がバラバラな方向へ跳ね返るのですか？
+            </div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <button onclick="checkQuiz(2, false)" class="py-2.5 px-3 rounded-xl text-sm font-black bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white">
+                ① 光が勝手に曲がるから
+              </button>
+              <button onclick="checkQuiz(2, true)" class="py-2.5 px-3 rounded-xl text-sm font-black bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white">
+                ② 場所ごとに面の傾きが違うから
+              </button>
+            </div>
+            <div id="quiz-ans-2" class="hidden text-sm p-2 rounded-xl font-extrabold"></div>
+          </div>
+
+          <!-- 第3問 -->
+          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 space-y-2">
+            <div class="text-sm sm:text-base font-black text-white">
+              Q3. 教室のどの席からでも黒板やスクリーンの文字が見えるのはなぜですか？
+            </div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <button onclick="checkQuiz(3, true)" class="py-2.5 px-3 rounded-xl text-sm font-black bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white">
+                ① 乱反射してあらゆる方向へ光が届くから
+              </button>
+              <button onclick="checkQuiz(3, false)" class="py-2.5 px-3 rounded-xl text-sm font-black bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white">
+                ② 鏡のように1方向へ強く光るから
+              </button>
+            </div>
+            <div id="quiz-ans-3" class="hidden text-sm p-2 rounded-xl font-extrabold"></div>
+          </div>
+        </div>
+
+        <div class="bg-indigo-950/80 border border-indigo-500/40 rounded-2xl p-3 flex items-center justify-between">
+          <div class="text-sm font-extrabold text-indigo-200">
+            💡 「1画面で実験」モードで、レーザーを1本にして自動スキャンしてみよう！
+          </div>
+          <button onclick="startSingleScanDemo()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm px-4 py-2 rounded-xl shrink-0 shadow">
+            ▶️ スキャン実験へ
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ==================== JavaScript（物理計算・特大キャンバス描画・アニメーション制御） ==================== -->
+  <script>
+    // =========================================================================
+    // アプリ全体の状態（State）
+    // =========================================================================
+    const state = {
+      viewMode: 'compare',      // 'compare' | 'single' | 'summary'
+      laserAngleDeg: 42,        // レーザーの入射角度（15°〜80°）
+      laserPosRatio: 0.46,      // レーザーが狙う横位置比率（0.18〜0.78）
+      rayCount: 5,              // 1, 5, 7
+      roughness: 0.90,          // 表面の凸凹度（0.0: 鏡 〜 1.0: 乱反射）
+      showTangents: true,       // 小さな鏡の傾きプレート表示
+      showNormals: true,        // 法線（垂直な点線）表示
+      showAngles: true,         // 入射角・反射角の扇形表示
+      selectedRayIdx: 2,        // ミクロ拡大図で拡大中の光線番号 (0始まり)
+      particlePhase: 0,         // 光の粒（レーザーパルス）の移動フェーズ
+      shootProgress: 2.0,       // スロー発射進行度 (0.0 -> 1.0: 入射, 1.0 -> 2.0: 反射)
+      isShooting: false,        // スロー発射アニメ中かどうか
+      autoSweep: false,         // 左右自動スキャンモードON/OFF
+      sweepDir: 1,              // 自動スキャンの移動方向
+      bumpSeed: 1,              // 凸凹波形のシード値
+      isDragging: false,        // キャンバス上のドラッグ操作中フラグ
+      activeRaysData: []        // ミクロ拡大図に渡す光線計算結果
+    };
+
+    // 凸凹面を作る合成サイン波パラメータ（どの点でも滑らかに接線と法線が求まる）
+    let surfaceWaves = [];
+
+    function buildSurfaceWaves(seed) {
+      const s = seed * 1.65;
+      surfaceWaves = [
+        { freq: 5.0 * Math.PI,  amp: 10.5, phase: s + 0.3 },
+        { freq: 9.0 * Math.PI,  amp: 6.8,  phase: s * 2.1 + 1.4 },
+        { freq: 15.0 * Math.PI, amp: 4.0,  phase: s * 3.2 + 2.7 }
+      ];
+    }
+    buildSurfaceWaves(state.bumpSeed);
+
+    // 正規化座標 u ∈ [0, 1] における凸凹の高さ dy と傾き slope (dy/dx) を計算
+    function getSurfaceGeometry(u, spanWidth, roughness) {
+      if (roughness <= 0.01) {
+        return { dy: 0, slope: 0 };
+      }
+      let dy = 0;
+      let d_dy_du = 0;
+      for (const w of surfaceWaves) {
+        const arg = w.freq * u + w.phase;
+        dy += roughness * w.amp * Math.sin(arg);
+        d_dy_du += roughness * w.amp * w.freq * Math.cos(arg);
+      }
+      // 傾きが極端になりすぎないようスケーリングしつつ、反射方向の違いがはっきり出る値に設定
+      const slope = (d_dy_du / spanWidth) * 0.58;
+      return { dy: dy * 0.72, slope };
+    }
+
+    // =========================================================================
+    // Canvas の初期化とリサイズ処理
+    // =========================================================================
+    const simCanvas = document.getElementById('simCanvas');
+    const ctx = simCanvas.getContext('2d');
+    const microCanvas = document.getElementById('microCanvas');
+    const microCtx = microCanvas.getContext('2d');
+
+    function resizeAllCanvases() {
+      const container = document.getElementById('canvas-container');
+      const dpr = window.devicePixelRatio || 1;
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        simCanvas.width = Math.max(300, Math.floor(rect.width * dpr));
+        simCanvas.height = Math.max(220, Math.floor(rect.height * dpr));
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      if (microCanvas && microCanvas.parentElement) {
+        const mRect = microCanvas.parentElement.getBoundingClientRect();
+        microCanvas.width = Math.max(200, Math.floor(mRect.width * dpr));
+        microCanvas.height = Math.max(140, Math.floor(mRect.height * dpr));
+        microCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+    }
+
+    window.addEventListener('resize', resizeAllCanvases);
+
+    // =========================================================================
+    // 画面モード・コントロール操作関数
+    // =========================================================================
+    function setViewMode(mode) {
+      state.viewMode = mode;
+      const tabCompare = document.getElementById('tab-compare');
+      const tabSingle = document.getElementById('tab-single');
+      const tabSummary = document.getElementById('tab-summary');
+
+      const simCol = document.getElementById('sim-column');
+      const rightCol = document.getElementById('right-column');
+      const summarySec = document.getElementById('summary-section');
+      const singleSwitch = document.getElementById('single-mode-switch');
+
+      const activeCls = 'px-4 py-2 rounded-xl text-sm font-black transition-all bg-sky-500 text-white shadow-md';
+      const inactiveCls = 'px-4 py-2 rounded-xl text-sm font-black transition-all text-slate-300 hover:text-white';
+
+      tabCompare.className = mode === 'compare' ? activeCls : inactiveCls;
+      tabSingle.className = mode === 'single' ? activeCls : inactiveCls;
+      tabSummary.className = mode === 'summary' ? activeCls : inactiveCls;
+
+      if (mode === 'summary') {
+        simCol.classList.add('hidden');
+        rightCol.classList.add('hidden');
+        summarySec.classList.remove('hidden');
+      } else {
+        simCol.classList.remove('hidden');
+        rightCol.classList.remove('hidden');
+        summarySec.classList.add('hidden');
+
+        if (mode === 'single') {
+          singleSwitch.classList.remove('hidden');
+        } else {
+          singleSwitch.classList.add('hidden');
+          if (state.roughness < 0.35) {
+            state.roughness = 0.90;
+            document.getElementById('slider-roughness').value = 0.90;
+          }
+        }
+        setTimeout(resizeAllCanvases, 25);
+      }
+    }
+
+    function setRoughnessPreset(val) {
+      state.roughness = val;
+      document.getElementById('slider-roughness').value = val;
+      updateSinglePresetHighlight();
+      triggerShootAnimation();
+    }
+
+    function updateSinglePresetHighlight() {
+      const r = state.roughness;
+      const bMirror = document.getElementById('preset-mirror');
+      const bWave = document.getElementById('preset-wave');
+      const bRough = document.getElementById('preset-rough');
+      if (!bMirror) return;
+
+      const onCls = 'px-3.5 py-1.5 rounded-xl text-sm font-black bg-sky-500 text-white shadow';
+      const offCls = 'px-3.5 py-1.5 rounded-xl text-sm font-black text-slate-300 hover:bg-slate-800';
+      bMirror.className = r <= 0.08 ? onCls : offCls;
+      bWave.className = (r > 0.08 && r < 0.65) ? onCls : offCls;
+      bRough.className = r >= 0.65 ? onCls : offCls;
+    }
+
+    function onControlInput() {
+      state.laserAngleDeg = parseFloat(document.getElementById('slider-angle').value);
+      state.laserPosRatio = parseFloat(document.getElementById('slider-pos').value);
+      state.roughness = parseFloat(document.getElementById('slider-roughness').value);
+      state.showTangents = document.getElementById('chk-tangents').checked;
+      state.showNormals = document.getElementById('chk-normals').checked;
+      state.showAngles = document.getElementById('chk-angles').checked;
+
+      document.getElementById('label-angle').textContent = `${Math.round(state.laserAngleDeg)}°`;
+      document.getElementById('label-pos').textContent = `${Math.round(state.laserPosRatio * 100)}%`;
+      updateSinglePresetHighlight();
+    }
+
+    function setLaserPreset(angle, pos) {
+      state.laserAngleDeg = angle;
+      state.laserPosRatio = pos;
+      document.getElementById('slider-angle').value = angle;
+      document.getElementById('slider-pos').value = pos;
+      onControlInput();
+      triggerShootAnimation();
+    }
+
+    function setRayCount(count) {
+      state.rayCount = count;
+      state.selectedRayIdx = Math.floor(count / 2);
+      [1, 5, 7].forEach(c => {
+        const btn = document.getElementById(`btn-rays-${c}`);
+        if (c === count) {
+          btn.className = 'py-1.5 rounded-xl text-sm font-black bg-amber-500 text-slate-950 shadow';
+        } else {
+          btn.className = 'py-1.5 rounded-xl text-sm font-black bg-slate-800 text-slate-200 border border-slate-700';
+        }
+      });
+      renderRaySelectionButtons();
+      triggerShootAnimation();
+    }
+
+    function renderRaySelectionButtons() {
+      const group = document.getElementById('ray-select-group');
+      group.innerHTML = '';
+      const circledNums = ['①', '②', '③', '④', '⑤', '⑥', '⑦'];
+      for (let i = 0; i < state.rayCount; i++) {
+        const btn = document.createElement('button');
+        const isSelected = i === state.selectedRayIdx;
+        btn.className = isSelected
+          ? 'px-2.5 py-1 rounded-lg text-sm font-black bg-cyan-400 text-slate-950 shadow'
+          : 'px-2.5 py-1 rounded-lg text-sm font-bold bg-slate-800 text-slate-300 hover:bg-slate-700';
+        btn.textContent = circledNums[i] || (i + 1);
+        btn.onclick = () => {
+          state.selectedRayIdx = i;
+          renderRaySelectionButtons();
+        };
+        group.appendChild(btn);
+      }
+    }
+
+    function changeBumpShape() {
+      state.bumpSeed += 1;
+      buildSurfaceWaves(state.bumpSeed);
+      triggerShootAnimation();
+    }
+
+    function triggerShootAnimation() {
+      state.shootProgress = 0.0;
+      state.isShooting = true;
+    }
+
+    function toggleAutoSweep() {
+      state.autoSweep = !state.autoSweep;
+      const btn = document.getElementById('btn-auto-sweep');
+      if (state.autoSweep) {
+        btn.className = 'bg-amber-500 text-slate-950 border-2 border-amber-300 text-sm font-black px-3.5 py-1.5 rounded-xl transition flex items-center gap-1 shadow-lg';
+        btn.innerHTML = '<span>🔄 左右に自動スキャン：ON</span>';
+      } else {
+        btn.className = 'bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 text-amber-300 text-sm font-black px-3.5 py-1.5 rounded-xl transition flex items-center gap-1';
+        btn.innerHTML = '<span>🔄 左右に自動スキャン：OFF</span>';
+      }
+    }
+
+    function startSingleScanDemo() {
+      setViewMode('single');
+      setRoughnessPreset(0.90);
+      setRayCount(1);
+      if (!state.autoSweep) {
+        toggleAutoSweep();
+      }
+    }
+
+    function switchGuideCard(num) {
+      const tab1 = document.getElementById('card-tab-1');
+      const tab2 = document.getElementById('card-tab-2');
+      const card1 = document.getElementById('guide-card-1');
+      const card2 = document.getElementById('guide-card-2');
+
+      if (num === 1) {
+        tab1.className = 'py-1.5 rounded-lg text-sm font-black bg-indigo-600 text-white shadow';
+        tab2.className = 'py-1.5 rounded-lg text-sm font-black text-slate-400 hover:text-white';
+        card1.classList.remove('hidden');
+        card2.classList.add('hidden');
+      } else {
+        tab2.className = 'py-1.5 rounded-lg text-sm font-black bg-indigo-600 text-white shadow';
+        tab1.className = 'py-1.5 rounded-lg text-sm font-black text-slate-400 hover:text-white';
+        card2.classList.remove('hidden');
+        card1.classList.add('hidden');
+      }
+    }
+
+    // =========================================================================
+    // クイズ判定処理
+    // =========================================================================
+    const quizMessages = {
+      1: {
+        ok: '⭕ 大正解！乱反射でも、光が当たる1つ1つのミクロな斜面では必ず「入射角＝反射角」が成り立っています！',
+        ng: '💡 注目！乱反射はデタラメに跳ね返るのではなく、1つ1つの場所で「入射角＝反射角」が成り立っています。'
+      },
+      2: {
+        ok: '⭕ 大正解！表面が凸凹していて場所ごとに「小さな鏡の傾き（法線の向き）」が違うため、いろいろな方向へ跳ね返ります！',
+        ng: '💡 光が勝手に曲がるわけではありません。表面の凸凹によって「面の傾き」が場所ごとに違うのが理由です！'
+      },
+      3: {
+        ok: '⭕ 大正解！黒板やスクリーンで光が「乱反射」して四方八方に進むため、どの席の人の目にも光が届きます！',
+        ng: '💡 もし鏡のように1方向にしか反射しないと、決まった席の人しか見えなくなってしまいます。'
+      }
+    };
+
+    function checkQuiz(qNum, isCorrect) {
+      const box = document.getElementById(`quiz-ans-${qNum}`);
+      box.classList.remove('hidden');
+      if (isCorrect) {
+        box.className = 'text-sm p-2.5 rounded-xl font-extrabold bg-emerald-950 border border-emerald-400 text-emerald-300';
+        box.textContent = quizMessages[qNum].ok;
+      } else {
+        box.className = 'text-sm p-2.5 rounded-xl font-extrabold bg-rose-950 border border-rose-400 text-rose-300';
+        box.textContent = quizMessages[qNum].ng;
+      }
+    }
+
+    function resetAllQuizzes() {
+      [1, 2, 3].forEach(n => {
+        document.getElementById(`quiz-ans-${n}`).classList.add('hidden');
+      });
+    }
+
+    // =========================================================================
+    // メインキャンバス描画（鏡の反射ボックス ＆ 乱反射ボックス）
+    // =========================================================================
+    function drawExperimentBox(cfg) {
+      const { x, y, w, h, title, badgeText, roughness, isTargetForLoupe } = cfg;
+
+      ctx.save();
+      // ボックス枠とクリッピング
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, 16);
+      ctx.fillStyle = '#070b12';
+      ctx.fill();
+      ctx.strokeStyle = roughness <= 0.05 ? 'rgba(56, 189, 248, 0.45)' : 'rgba(245, 158, 11, 0.45)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.clip();
+
+      // 背景グリッド
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.07)';
+      ctx.lineWidth = 1;
+      for (let gx = x; gx < x + w; gx += 32) {
+        ctx.beginPath();
+        ctx.moveTo(gx, y);
+        ctx.lineTo(gx, y + h);
+        ctx.stroke();
+      }
+      for (let gy = y; gy < y + h; gy += 32) {
+        ctx.beginPath();
+        ctx.moveTo(x, gy);
+        ctx.lineTo(x + w, gy);
+        ctx.stroke();
+      }
+
+      // 反射面の基準高さと横幅
+      const surfaceY = y + h * 0.79;
+      const padX = w * 0.07;
+      const startX = x + padX;
+      const endX = x + w - padX;
+      const spanW = endX - startX;
+
+      // 観察者3人（左・中央・右の目アイコン）の位置
+      const observers = [
+        { id: '左の人', short: '左', x: x + w * 0.25, y: y + 66, hit: false },
+        { id: '中の人', short: '中', x: x + w * 0.56, y: y + 54, hit: false },
+        { id: '右の人', short: '右', x: x + w * 0.85, y: y + 70, hit: false }
+      ];
+
+      // 1. 反射面（鏡 または 凸凹面）の描画
+      const segs = 150;
+      ctx.beginPath();
+      for (let i = 0; i <= segs; i++) {
+        const u = i / segs;
+        const px = startX + u * spanW;
+        const { dy } = getSurfaceGeometry(u, spanW, roughness);
+        const py = surfaceY + dy;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.lineTo(endX, y + h);
+      ctx.lineTo(startX, y + h);
+      ctx.closePath();
+
+      const grad = ctx.createLinearGradient(0, surfaceY - 15, 0, y + h);
+      if (roughness <= 0.05) {
+        grad.addColorStop(0, 'rgba(56, 189, 248, 0.45)');
+        grad.addColorStop(0.25, 'rgba(15, 23, 42, 0.95)');
+        grad.addColorStop(1, '#020617');
+      } else {
+        grad.addColorStop(0, 'rgba(226, 232, 240, 0.42)');
+        grad.addColorStop(0.3, 'rgba(51, 65, 85, 0.9)');
+        grad.addColorStop(1, '#0f172a');
+      }
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // 表面の太い輪郭線
+      ctx.beginPath();
+      for (let i = 0; i <= segs; i++) {
+        const u = i / segs;
+        const px = startX + u * spanW;
+        const { dy } = getSurfaceGeometry(u, spanW, roughness);
+        const py = surfaceY + dy;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.strokeStyle = roughness <= 0.05 ? '#7dd3fc' : '#f8fafc';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      // 鏡のハッチング（斜線）
+      if (roughness <= 0.05) {
+        ctx.strokeStyle = 'rgba(125, 211, 252, 0.4)';
+        ctx.lineWidth = 1.8;
+        for (let hx = startX + 10; hx < endX - 6; hx += 16) {
+          ctx.beginPath();
+          ctx.moveTo(hx, surfaceY);
+          ctx.lineTo(hx - 8, surfaceY + 12);
+          ctx.stroke();
+        }
+      }
+
+      // 面の下部に大きくわかりやすい説明テキストを表示
+      ctx.fillStyle = roughness <= 0.05 ? '#7dd3fc' : '#fde68a';
+      ctx.font = '900 14px "M PLUS Rounded 1c"';
+      ctx.textAlign = 'center';
+      const surfDesc = roughness <= 0.05
+        ? '🪞 平らな鏡の面（どこも真上が垂直）'
+        : '📄 凸凹な面（場所によって斜面の傾きが違う）';
+      ctx.fillText(surfDesc, x + w / 2, y + h - 12);
+
+      // 2. レーザーポインターと各光線の反射計算
+      const rad = (state.laserAngleDeg * Math.PI) / 180;
+      const dirX = Math.sin(rad);
+      const dirY = Math.cos(rad);
+      const perpX = -dirY;
+      const perpY = dirX;
+
+      const targetCenterX = startX + state.laserPosRatio * spanW;
+      const targetCenterY = surfaceY;
+
+      const distToPointer = Math.min(w, h) * 0.55;
+      const laserCenterX = targetCenterX - dirX * distToPointer;
+      const laserCenterY = targetCenterY - dirY * distToPointer;
+
+      const beamSpread = state.rayCount === 1 ? 0 : (state.rayCount === 5 ? 52 : 66);
+      const raysList = [];
+
+      for (let i = 0; i < state.rayCount; i++) {
+        const offsetRatio = state.rayCount === 1 ? 0 : (i / (state.rayCount - 1)) - 0.5;
+        const shift = offsetRatio * beamSpread;
+
+        const rayStartX = laserCenterX + perpX * shift + dirX * 30;
+        const rayStartY = laserCenterY + perpY * shift + dirY * 30;
+
+        // 表面との交点を反復計算で正確に求める
+        let tHit = (surfaceY - rayStartY) / dirY;
+        let hitX = rayStartX + dirX * tHit;
+        let hitU = Math.max(0.03, Math.min(0.97, (hitX - startX) / spanW));
+
+        for (let iter = 0; iter < 4; iter++) {
+          const { dy } = getSurfaceGeometry(hitU, spanW, roughness);
+          tHit = ((surfaceY + dy) - rayStartY) / dirY;
+          hitX = rayStartX + dirX * tHit;
+          hitU = Math.max(0.03, Math.min(0.97, (hitX - startX) / spanW));
+        }
+
+        const { dy, slope } = getSurfaceGeometry(hitU, spanW, roughness);
+        const hitY = surfaceY + dy;
+        hitX = startX + hitU * spanW;
+
+        // 単位接線ベクトル T = (tx, ty) と 単位法線ベクトル N = (nx, ny)
+        const len = Math.hypot(1, slope);
+        const tx = 1 / len;
+        const ty = slope / len;
+        const nx = slope / len;
+        const ny = -1 / len;
+
+        // 反射ベクトル R = I - 2(I・N)N（厳密な反射の法則）
+        const dotIN = dirX * nx + dirY * ny;
+        const refX = dirX - 2 * dotIN * nx;
+        const refY = dirY - 2 * dotIN * ny;
+
+        // 入射角（＝反射角）の度数
+        const cosInc = Math.max(-1, Math.min(1, -(dirX * nx + dirY * ny)));
+        const localAngleDeg = (Math.acos(cosInc) * 180) / Math.PI;
+        const slopeAngleDeg = (Math.atan(slope) * 180) / Math.PI;
+
+        // 観察者の目に光線が届くかチェック
+        const maxRefLength = Math.hypot(w, h) * 0.95;
+        for (const obs of observers) {
+          const vx = obs.x - hitX;
+          const vy = obs.y - hitY;
+          const proj = vx * refX + vy * refY;
+          if (proj > 0) {
+            const perpDist = Math.abs(vx * refY - vy * refX);
+            if (perpDist < 32) {
+              obs.hit = true;
+            }
+          }
+        }
+
+        raysList.push({
+          index: i,
+          rayStartX, rayStartY,
+          hitX, hitY,
+          dirX, dirY,
+          refX, refY,
+          nx, ny,
+          tx, ty,
+          localAngleDeg,
+          slopeAngleDeg,
+          maxRefLength
+        });
+      }
+
+      if (isTargetForLoupe) {
+        state.activeRaysData = raysList;
+      }
+
+      // 3. 光線・小さな鏡プレート・法線・角度・光の粒の描画
+      const inRatio = Math.min(1.0, state.shootProgress);
+      const outRatio = Math.max(0.0, Math.min(1.0, state.shootProgress - 1.0));
+      const circledNums = ['①', '②', '③', '④', '⑤', '⑥', '⑦'];
+
+      for (const ray of raysList) {
+        const isSelected = isTargetForLoupe && (ray.index === state.selectedRayIdx);
+
+        // (A) 凸凹の各点にある「小さな鏡（接面プレート）」を大きく描画
+        if (state.showTangents && inRatio >= 0.95) {
+          const plateHalf = isSelected ? 22 : (state.rayCount === 7 ? 13 : 17);
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(ray.hitX - ray.tx * plateHalf, ray.hitY - ray.ty * plateHalf);
+          ctx.lineTo(ray.hitX + ray.tx * plateHalf, ray.hitY + ray.ty * plateHalf);
+          ctx.strokeStyle = isSelected ? '#22d3ee' : 'rgba(34, 211, 238, 0.85)';
+          ctx.lineWidth = isSelected ? 6 : 4;
+          ctx.lineCap = 'round';
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // (B) 法線（小さな鏡に垂直な点線）を描画
+        if (state.showNormals && inRatio >= 0.95) {
+          const normLen = isSelected ? 82 : 64;
+          ctx.save();
+          ctx.beginPath();
+          ctx.setLineDash([5, 4]);
+          ctx.moveTo(ray.hitX, ray.hitY);
+          ctx.lineTo(ray.hitX + ray.nx * normLen, ray.hitY + ray.ny * normLen);
+          ctx.strokeStyle = isSelected ? '#34d399' : 'rgba(52, 211, 153, 0.75)';
+          ctx.lineWidth = isSelected ? 3 : 2;
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // (C) 入射角と反射角の扇形（アーク）を描画
+        if (state.showAngles && inRatio >= 0.98 && (state.rayCount <= 5 || isSelected)) {
+          const radius = isSelected ? 36 : 24;
+          const normAng = Math.atan2(ray.ny, ray.nx);
+          const incRevAng = Math.atan2(-ray.dirY, -ray.dirX);
+          const refAng = Math.atan2(ray.refY, ray.refX);
+
+          drawSectorArc(ctx, ray.hitX, ray.hitY, radius, incRevAng, normAng, 'rgba(244, 63, 94, 0.32)', '#f43f5e');
+          drawSectorArc(ctx, ray.hitX, ray.hitY, radius, normAng, refAng, 'rgba(251, 191, 36, 0.32)', '#fbbf24');
+        }
+
+        // (D) 入射レーザー光線
+        const curHitX = ray.rayStartX + (ray.hitX - ray.rayStartX) * inRatio;
+        const curHitY = ray.rayStartY + (ray.hitY - ray.rayStartY) * inRatio;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(ray.rayStartX, ray.rayStartY);
+        ctx.lineTo(curHitX, curHitY);
+        ctx.strokeStyle = isSelected ? '#fb7185' : '#f43f5e';
+        ctx.lineWidth = isSelected ? 4.5 : 3;
+        ctx.shadowColor = '#f43f5e';
+        ctx.shadowBlur = isSelected ? 12 : 6;
+        ctx.stroke();
+        ctx.restore();
+
+        // (E) 反射レーザー光線
+        if (outRatio > 0) {
+          const curRefLen = ray.maxRefLength * outRatio;
+          const refEndX = ray.hitX + ray.refX * curRefLen;
+          const refEndY = ray.hitY + ray.refY * curRefLen;
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(ray.hitX, ray.hitY);
+          ctx.lineTo(refEndX, refEndY);
+          ctx.strokeStyle = isSelected ? '#fef08a' : '#fbbf24';
+          ctx.lineWidth = isSelected ? 4.5 : 3;
+          ctx.shadowColor = '#fbbf24';
+          ctx.shadowBlur = isSelected ? 12 : 6;
+          ctx.stroke();
+          ctx.restore();
+
+          // 反射光の進行方向を示す大きな矢印
+          if (outRatio > 0.3) {
+            const arrowDist = Math.min(95, curRefLen * 0.55);
+            drawArrowHead(
+              ctx,
+              ray.hitX + ray.refX * arrowDist,
+              ray.hitY + ray.refY * arrowDist,
+              ray.refX,
+              ray.refY,
+              isSelected ? '#fef08a' : '#fbbf24',
+              isSelected ? 1.35 : 1.05
+            );
+          }
+        }
+
+        // (F) 光が進んでいく様子を表す「光の粒（アニメーションドット）」
+        const inDist = Math.hypot(ray.hitX - ray.rayStartX, ray.hitY - ray.rayStartY);
+        const stepDist = 42;
+
+        // 入射光上の光の粒
+        ctx.fillStyle = '#ffffff';
+        for (let d = (state.particlePhase % stepDist); d < inDist * inRatio; d += stepDist) {
+          const px = ray.rayStartX + ray.dirX * d;
+          const py = ray.rayStartY + ray.dirY * d;
+          ctx.beginPath();
+          ctx.arc(px, py, isSelected ? 4.2 : 3.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // 反射光上の光の粒
+        if (outRatio > 0) {
+          const maxOutDist = ray.maxRefLength * outRatio;
+          ctx.fillStyle = '#fef08a';
+          for (let d = (state.particlePhase % stepDist); d < maxOutDist; d += stepDist) {
+            const px = ray.hitX + ray.refX * d;
+            const py = ray.hitY + ray.refY * d;
+            if (px >= x && px <= x + w && py >= y && py <= y + h) {
+              ctx.beginPath();
+              ctx.arc(px, py, isSelected ? 4.2 : 3.2, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+        }
+
+        // (G) 当たった点のハイライト丸枠と番号ラベル
+        if (inRatio >= 0.98) {
+          ctx.beginPath();
+          ctx.arc(ray.hitX, ray.hitY, isSelected ? 7 : 4.5, 0, Math.PI * 2);
+          ctx.fillStyle = isSelected ? '#22d3ee' : '#fde047';
+          ctx.fill();
+
+          if (isSelected) {
+            ctx.beginPath();
+            ctx.arc(ray.hitX, ray.hitY, 18, 0, Math.PI * 2);
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // 拡大中バッジ
+            ctx.fillStyle = '#22d3ee';
+            ctx.font = '900 13px "M PLUS Rounded 1c"';
+            ctx.textAlign = 'center';
+            ctx.fillText(`🔎${circledNums[ray.index]}拡大中`, ray.hitX, ray.hitY + 32);
+          }
+        }
+      }
+
+      // 4. 大型レーザーポインター本体の描画
+      drawBigLaserPointer(ctx, laserCenterX, laserCenterY, dirX, dirY, beamSpread);
+
+      // 5. 観察者の目（左・中・右）の大型アイコン描画
+      for (const obs of observers) {
+        drawBigObserver(ctx, obs.x, obs.y, obs.id, obs.hit && outRatio > 0.45);
+      }
+
+      // 6. ボックス左上の大型タイトル看板
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+      ctx.beginPath();
+      ctx.roundRect(x + 10, y + 8, Math.min(w - 20, 290), 36, 10);
+      ctx.fill();
+      ctx.strokeStyle = roughness <= 0.05 ? '#38bdf8' : '#f59e0b';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.textAlign = 'left';
+      ctx.font = '900 15px "M PLUS Rounded 1c"';
+      ctx.fillStyle = roughness <= 0.05 ? '#38bdf8' : '#fbbf24';
+      ctx.fillText(`${title}  `, x + 18, y + 31);
+
+      ctx.restore();
+      return observers;
+    }
+
+    // 扇形アークを描画するヘルパー
+    function drawSectorArc(c, cx, cy, r, a1, a2, fill, stroke) {
+      let diff = a2 - a1;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      c.save();
+      c.beginPath();
+      c.moveTo(cx, cy);
+      c.arc(cx, cy, r, a1, a1 + diff, diff < 0);
+      c.closePath();
+      c.fillStyle = fill;
+      c.fill();
+      c.strokeStyle = stroke;
+      c.lineWidth = 2;
+      c.stroke();
+      c.restore();
+    }
+
+    // 光線の矢印を描画するヘルパー
+    function drawArrowHead(c, x, y, dx, dy, color, scale = 1) {
+      const ang = Math.atan2(dy, dx);
+      c.save();
+      c.translate(x, y);
+      c.rotate(ang);
+      c.scale(scale, scale);
+      c.beginPath();
+      c.moveTo(8, 0);
+      c.lineTo(-6, -6);
+      c.lineTo(-3.5, 0);
+      c.lineTo(-6, 6);
+      c.closePath();
+      c.fillStyle = color;
+      c.fill();
+      c.restore();
+    }
+
+    // 大型レーザーポインター本体を描画
+    function drawBigLaserPointer(c, px, py, dirX, dirY, spread) {
+      const ang = Math.atan2(dirY, dirX);
+      const bodyW = 68;
+      const bodyH = Math.max(32, spread + 22);
+
+      c.save();
+      c.translate(px, py);
+      c.rotate(ang);
+
+      // 本体ボックス
+      c.fillStyle = '#1e293b';
+      c.strokeStyle = '#f43f5e';
+      c.lineWidth = 3;
+      c.beginPath();
+      c.roundRect(-bodyW / 2, -bodyH / 2, bodyW, bodyH, 10);
+      c.fill();
+      c.stroke();
+
+      // 照射口（赤い発光部）
+      c.fillStyle = '#f43f5e';
+      c.beginPath();
+      c.roundRect(bodyW / 2 - 10, -bodyH / 2 + 4, 10, bodyH - 8, 4);
+      c.fill();
+
+      // 文字ラベル
+      c.fillStyle = '#ffffff';
+      c.font = '900 12px "M PLUS Rounded 1c"';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText('🔦レーザー', -4, 0);
+
+      c.restore();
+    }
+
+    // 観察者の目アイコン（大きく見やすいピル型）を描画
+    function drawBigObserver(c, ox, oy, label, isVisible) {
+      c.save();
+      const boxW = 92;
+      const boxH = 38;
+      c.beginPath();
+      c.roundRect(ox - boxW / 2, oy - boxH / 2, boxW, boxH, 19);
+      if (isVisible) {
+        c.fillStyle = 'rgba(250, 204, 21, 0.28)';
+        c.strokeStyle = '#facc15';
+        c.lineWidth = 2.5;
+      } else {
+        c.fillStyle = 'rgba(15, 23, 42, 0.88)';
+        c.strokeStyle = 'rgba(100, 116, 139, 0.5)';
+        c.lineWidth = 1.5;
+      }
+      c.fill();
+      c.stroke();
+
+      c.textAlign = 'center';
+      c.font = '900 12px "M PLUS Rounded 1c"';
+      c.fillStyle = isVisible ? '#fef08a' : '#94a3b8';
+      c.fillText(`👀 ${label}`, ox, oy - 4);
+
+      c.font = '900 11px "M PLUS Rounded 1c"';
+      c.fillStyle = isVisible ? '#4ade80' : '#64748b';
+      c.fillText(isVisible ? '✨見える！' : '届かない', ox, oy + 11);
+      c.restore();
+    }
+
+    // キャンバス下部の観察者ステータス表示を更新
+    function updateObserverStatusUI(mirrorObs, diffuseObs) {
+      const mEl = document.getElementById('status-mirror-eyes');
+      const dEl = document.getElementById('status-diffuse-eyes');
+      if (!mEl || !dEl) return;
+
+      const makePills = (arr) => arr.map(o => {
+        if (o.hit) {
+          return `<span class="px-2.5 py-1 rounded-lg text-xs font-black bg-amber-400 text-slate-950 shadow">👀${o.short}:見える✨</span>`;
+        } else {
+          return `<span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-500 border border-slate-700">👀${o.short}:－</span>`;
+        }
+      }).join('');
+
+      if (mirrorObs) mEl.innerHTML = makePills(mirrorObs);
+      if (diffuseObs) dEl.innerHTML = makePills(diffuseObs);
+    }
+
+    // =========================================================================
+    // 右パネル：特大ミクロ拡大ルーペの描画
+    // =========================================================================
+    function renderBigMicroLoupe() {
+      const dpr = window.devicePixelRatio || 1;
+      const mw = microCanvas.width / dpr;
+      const mh = microCanvas.height / dpr;
+
+      microCtx.clearRect(0, 0, mw, mh);
+
+      const rays = state.activeRaysData;
+      if (!rays || rays.length === 0) return;
+
+      const idx = Math.min(state.selectedRayIdx, rays.length - 1);
+      const ray = rays[idx];
+
+      const cx = mw * 0.5;
+      const cy = mh * 0.78;
+      const plateLen = mw * 0.40;
+
+      microCtx.save();
+
+      // 1. 拡大された凸凹の斜面（水色の小さな鏡プレート）
+      microCtx.beginPath();
+      microCtx.moveTo(cx - ray.tx * plateLen, cy - ray.ty * plateLen);
+      microCtx.lineTo(cx + ray.tx * plateLen, cy + ray.ty * plateLen);
+      microCtx.lineTo(cx + ray.tx * plateLen, mh + 30);
+      microCtx.lineTo(cx - ray.tx * plateLen, mh + 30);
+      microCtx.closePath();
+      microCtx.fillStyle = 'rgba(34, 211, 238, 0.16)';
+      microCtx.fill();
+
+      // 小さな鏡の表面ライン
+      microCtx.beginPath();
+      microCtx.moveTo(cx - ray.tx * plateLen, cy - ray.ty * plateLen);
+      microCtx.lineTo(cx + ray.tx * plateLen, cy + ray.ty * plateLen);
+      microCtx.strokeStyle = '#22d3ee';
+      microCtx.lineWidth = 6;
+      microCtx.lineCap = 'round';
+      microCtx.stroke();
+
+      // 2. 法線（その小さな鏡に対して90°垂直な線）
+      const normLen = mh * 0.66;
+      microCtx.beginPath();
+      microCtx.setLineDash([6, 4]);
+      microCtx.moveTo(cx, cy);
+      microCtx.lineTo(cx + ray.nx * normLen, ray.hitY ? cy + ray.ny * normLen : cy - normLen);
+      microCtx.strokeStyle = '#34d399';
+      microCtx.lineWidth = 3;
+      microCtx.stroke();
+      microCtx.setLineDash([]);
+
+      // 法線ラベル
+      microCtx.fillStyle = '#34d399';
+      microCtx.font = '900 13px "M PLUS Rounded 1c"';
+      microCtx.textAlign = 'center';
+      microCtx.fillText('法線(垂直90°)', cx + ray.nx * (normLen - 8), cy + ray.ny * (normLen - 8) - 6);
+
+      // 直角マーク
+      const sq = 11;
+      microCtx.beginPath();
+      microCtx.moveTo(cx + ray.tx * sq, cy + ray.ty * sq);
+      microCtx.lineTo(cx + ray.tx * sq + ray.nx * sq, cy + ray.ty * sq + ray.ny * sq);
+      microCtx.lineTo(cx + ray.nx * sq, cy + ray.ny * sq);
+      microCtx.strokeStyle = '#34d399';
+      microCtx.lineWidth = 2;
+      microCtx.stroke();
+
+      // 3. 入射角と反射角の大きな扇形
+      const normAng = Math.atan2(ray.ny, ray.nx);
+      const incRevAng = Math.atan2(-ray.dirY, -ray.dirX);
+      const refAng = Math.atan2(ray.refY, ray.refX);
+      const arcR = Math.min(mw, mh) * 0.28;
+
+      drawSectorArc(microCtx, cx, cy, arcR, incRevAng, normAng, 'rgba(244, 63, 94, 0.38)', '#f43f5e');
+      drawSectorArc(microCtx, cx, cy, arcR, normAng, refAng, 'rgba(251, 191, 36, 0.38)', '#fbbf24');
+
+      // 4. 入射光と反射光（太く鮮明に描画）
+      const beamLen = Math.min(mw, mh) * 0.72;
+
+      // 入射光
+      microCtx.beginPath();
+      microCtx.moveTo(cx - ray.dirX * beamLen, cy - ray.dirY * beamLen);
+      microCtx.lineTo(cx, cy);
+      microCtx.strokeStyle = '#f43f5e';
+      microCtx.lineWidth = 4.5;
+      microCtx.stroke();
+
+      // 反射光
+      microCtx.beginPath();
+      microCtx.moveTo(cx, cy);
+      microCtx.lineTo(cx + ray.refX * beamLen, cy + ray.refY * beamLen);
+      microCtx.strokeStyle = '#fbbf24';
+      microCtx.lineWidth = 4.5;
+      microCtx.stroke();
+
+      // 角度数値ラベルをキャンバス内にも大きく表示
+      const degInt = Math.round(ray.localAngleDeg);
+      const midIncAng = (incRevAng + normAng) / 2;
+      const midRefAng = (normAng + refAng) / 2;
+      const labelR = arcR + 18;
+
+      microCtx.font = '900 14px "M PLUS Rounded 1c"';
+      microCtx.fillStyle = '#fda4af';
+      microCtx.fillText(`${degInt}°`, cx + Math.cos(midIncAng) * labelR, cy + Math.sin(midIncAng) * labelR);
+
+      microCtx.fillStyle = '#fde047';
+      microCtx.fillText(`${degInt}°`, cx + Math.cos(midRefAng) * labelR, cy + Math.sin(midRefAng) * labelR);
+
+      // 反射点ドット
+      microCtx.beginPath();
+      microCtx.arc(cx, cy, 6, 0, Math.PI * 2);
+      microCtx.fillStyle = '#ffffff';
+      microCtx.fill();
+
+      microCtx.restore();
+
+      // メーター表示の更新
+      const circledNums = ['①', '②', '③', '④', '⑤', '⑥', '⑦'];
+      const slopeInt = Math.round(ray.slopeAngleDeg);
+      const slopeStr = slopeInt > 0 ? `+${slopeInt}°` : `${slopeInt}°`;
+
+      document.getElementById('micro-slope-badge').textContent =
+        `光線 ${circledNums[idx]} の場所：小さな鏡の傾き ${slopeStr}`;
+      document.getElementById('big-inc-deg').textContent = `${degInt}°`;
+      document.getElementById('big-ref-deg').textContent = `${degInt}°`;
+    }
+
+    // =========================================================================
+    // キャンバス上のタッチ・ドラッグ操作
+    // =========================================================================
+    function handleCanvasTouch(e, isMove) {
+      const rect = simCanvas.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      const cw = rect.width;
+      const ch = rect.height;
+
+      let localX = px;
+      let boxW = cw;
+      if (state.viewMode === 'compare') {
+        boxW = cw / 2;
+        if (px > boxW) localX = px - boxW;
+      }
+
+      const surfaceY = ch * 0.79;
+
+      // 光が当たった点（反射面付近）をタップしたら、その光線を拡大ルーペの対象にする
+      if (!isMove && Math.abs(py - surfaceY) < 48 && state.activeRaysData.length > 1) {
+        let bestIdx = state.selectedRayIdx;
+        let minDist = 999;
+        state.activeRaysData.forEach((r, idx) => {
+          const rLocalX = state.viewMode === 'compare' && r.hitX > boxW ? r.hitX - boxW : r.hitX;
+          const dist = Math.hypot(localX - rLocalX, py - r.hitY);
+          if (dist < minDist) {
+            minDist = dist;
+            bestIdx = idx;
+          }
+        });
+        if (minDist < 42) {
+          state.selectedRayIdx = bestIdx;
+          renderRaySelectionButtons();
+          return;
+        }
+      }
+
+      // 上部エリアをタッチ・ドラッグした場合はレーザーの角度と場所を直感的に動かす
+      if (py < surfaceY - 20) {
+        const relX = Math.max(0.08, Math.min(0.92, localX / boxW));
+        const relY = Math.max(0.08, Math.min(0.72, py / ch));
+
+        const newAngle = Math.round(16 + (1 - relY / 0.72) * 58);
+        const clampedAngle = Math.max(15, Math.min(80, newAngle));
+        const newPos = Math.max(0.18, Math.min(0.78, relX + 0.14));
+
+        state.laserAngleDeg = clampedAngle;
+        state.laserPosRatio = newPos;
+        document.getElementById('slider-angle').value = clampedAngle;
+        document.getElementById('slider-pos').value = newPos;
+        onControlInput();
+      }
+    }
+
+    simCanvas.addEventListener('pointerdown', (e) => {
+      state.isDragging = true;
+      simCanvas.setPointerCapture(e.pointerId);
+      handleCanvasTouch(e, false);
+    });
+
+    simCanvas.addEventListener('pointermove', (e) => {
+      if (!state.isDragging) return;
+      handleCanvasTouch(e, true);
+    });
+
+    simCanvas.addEventListener('pointerup', () => {
+      state.isDragging = false;
+    });
+
+    simCanvas.addEventListener('pointercancel', () => {
+      state.isDragging = false;
+    });
+
+    // =========================================================================
+    // メインアニメーションループ
+    // =========================================================================
+    function animate() {
+      if (state.viewMode !== 'summary') {
+        const dpr = window.devicePixelRatio || 1;
+        const cw = simCanvas.width / dpr;
+        const ch = simCanvas.height / dpr;
+
+        ctx.clearRect(0, 0, cw, ch);
+
+        // 光の粒の進行フェーズ更新
+        state.particlePhase = (state.particlePhase + 1.6) % 1000;
+
+        // スロー発射アニメーションの進行
+        if (state.isShooting) {
+          state.shootProgress += 0.032;
+          if (state.shootProgress >= 2.0) {
+            state.shootProgress = 2.0;
+            state.isShooting = false;
+          }
+        }
+
+        // 左右自動スキャンモード時の位置更新
+        if (state.autoSweep && !state.isDragging) {
+          state.laserPosRatio += 0.0018 * state.sweepDir;
+          if (state.laserPosRatio >= 0.74) {
+            state.laserPosRatio = 0.74;
+            state.sweepDir = -1;
+          } else if (state.laserPosRatio <= 0.22) {
+            state.laserPosRatio = 0.22;
+            state.sweepDir = 1;
+          }
+          document.getElementById('slider-pos').value = state.laserPosRatio;
+          document.getElementById('label-pos').textContent = `${Math.round(state.laserPosRatio * 100)}%`;
+        }
+
+        if (state.viewMode === 'compare') {
+          const gap = 10;
+          const halfW = (cw - gap) / 2;
+
+          const mirrorObs = drawExperimentBox({
+            x: 0,
+            y: 0,
+            w: halfW,
+            h: ch,
+            title: '① 鏡の反射（1方向へそろう）',
+            roughness: 0.0,
+            isTargetForLoupe: false
+          });
+
+          const diffuseObs = drawExperimentBox({
+            x: halfW + gap,
+            y: 0,
+            w: halfW,
+            h: ch,
+            title: '② 乱反射（あらゆる方向へ広がる）',
+            roughness: state.roughness,
+            isTargetForLoupe: true
+          });
+
+          updateObserverStatusUI(mirrorObs, diffuseObs);
+        } else {
+          const isFlat = state.roughness <= 0.05;
+          const singleObs = drawExperimentBox({
+            x: 0,
+            y: 0,
+            w: cw,
+            h: ch,
+            title: isFlat
+              ? '🪞 平らな鏡の反射（すべての場所で法線が真上）'
+              : '📄 凸凹な面の乱反射（それぞれの場所で入射角＝反射角）',
+            roughness: state.roughness,
+            isTargetForLoupe: true
+          });
+
+          updateObserverStatusUI(singleObs, singleObs);
+        }
+
+        renderBigMicroLoupe();
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    // 起動時初期化
+    window.onload = function () {
+      resizeAllCanvases();
+      renderRaySelectionButtons();
+      onControlInput();
+      animate();
+    };
+  </script>
+</body>
+</html>
